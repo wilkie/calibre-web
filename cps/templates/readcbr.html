@@ -1,39 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Comic Reader</title>
+  <title>kthoom Comic Reader</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/libs/normalize.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/kthoom.css') }}" type="text/css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" type="text/css"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/readcbr.css') }}" type="text/css" />
+  <link rel="preload" href="{{ url_for('static', filename='js/kthoom/book.js') }}" as="script" />
+  <link rel="preload" href="{{ url_for('static', filename='js/kthoom/book-viewer.js') }}" as="script" />
+  <link rel="preload" href="{{ url_for('static', filename='js/kthoom/helpers.js') }}" as="script" />
+  <link rel="preload" href="{{ url_for('static', filename='js/kthoom/page.js') }}" as="script" />
+  <link rel="preload" href="{{ url_for('static', filename='js/kthoom/reading-stack.js') }}" as="script" />
+
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
   <meta name="description" content="">
   <meta name="viewport" content="width=device-width, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/libs/normalize.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" type="text/css"/>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/kthoom.css') }}" type="text/css"/>
-
-  <script src="{{ url_for('static', filename='js/libs/jquery.min.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/libs/screenfull.min.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/kthoom.js') }}"></script>
-	<script src="{{ url_for('static', filename='js/archive/archive.js') }}"></script>
-  <script>
-    var updateArrows = function() {
-      if ($('input[name="direction"]:checked').val() === "0") {
-        $("#prev_page_key").html("&larr;");
-        $("#next_page_key").html("&rarr;");
-      } else {
-        $("#prev_page_key").html("&rarr;");
-        $("#next_page_key").html("&larr;");
-      }
-    };
-    document.onreadystatechange = function () {
-      if (document.readyState == "complete") {
-      	init("{{ url_for('web.serve_book', book_id=comicfile, book_format=extension) }}");
-      	updateArrows();
-      }
-    }
+  <script type="text/javascript">
+     // Remember the URL, which will get loaded by kthoom
+     window.cbrURL = "{{ url_for('web.serve_book', book_id=comicfile, book_format=extension) }}";
   </script>
+  <script type="text/javascript" src="{{ url_for('static', filename='js/libs/screenfull.min.js') }}"></script>
+  <script type="module" src="{{ url_for('static', filename='js/kthoom.js') }}"></script>
 </head>
+
 <body>
 <div id="sidebar">
   <div id="tocView" class="view" tabindex="-1">
@@ -59,23 +51,236 @@
       <a id="fullscreen" class="icon-resize-full">Fullscreen</a>
     </div>
     <div id="progress" role="progressbar" class="loading">
-      <div class="bar-load">
-        <div class="text load">
-          Loading...
-        </div>
-      </div>
-      <div class="bar-read">
-        <div class="text page"></div>
-      </div>
+      <svg id="svgprogress" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
+        <defs>
+          <pattern id="load_progress_pattern" width="30" height="20" patternUnits="userSpaceOnUse">
+            <rect width="100%" height="100%" fill="#6b6b73"></rect>
+            <polygon fill="#59596b" points="15,0 30,0 15,20 0,20"></polygon>
+          </pattern>
+          <pattern id="zip_progress_pattern" width="30" height="20" patternUnits="userSpaceOnUse">
+            <rect width="100%" height="100%" fill="#a6a6b5"></rect>
+            <polygon fill="#9797b7" points="15,0 30,0 15,20 0,20"></polygon>
+          </pattern>
+          <pattern id="layout_progress_pattern" width="30" height="20" patternUnits="userSpaceOnUse">
+            <rect width="100%" height="100%" fill="#ccc"></rect>
+            <polygon fill="#ccc" points="15,0 30,0 15,20 0,20"></polygon>
+          </pattern>
+        </defs>
+        <g>
+          <rect id="border" y="1" width="100%" height="9" fill="#777" stroke="white"></rect>
+          <rect id="loadmeter" class="meter" width="0%" height="10" fill="url(#load_progress_pattern)">
+          </rect>
+          <rect id="zipmeter" class="meter" width="0%" height="10" fill="url(#zip_progress_pattern)">
+          </rect>
+          <rect id="throbber_0" y="1" x="3%" width="4%" height="10" fill="#ababff" transform="skewX(-45)"></rect>
+          <rect id="throbber_1" y="1" x="31%" width="4%" height="10" fill="#ababff" transform="skewX(-45)"></rect>
+          <rect id="throbber_2" y="1" x="62%" width="4%" height="10" fill="#ababff" transform="skewX(-45)"></rect>
+          <rect id="throbber_3" y="1" x="91%" width="4%" height="10" fill="#ababff" transform="skewX(-45)"></rect>
+          <rect id="layoutmeter" class="meter" width="0%" height="10" fill="url(#layout_progress_pattern)"></rect>
+          <rect id="pagemeter" class="meter" width="0%" height="10" opacity="0.8" fill="#45b29d"></rect>
+          <rect id="progress_bkgnd" x="95%" y="0.5" width="14ex" height="16" fill="black" stroke="none"
+            fill-opacity="0.6"></rect>
+          <text id="progress_title" y="8" x="99.5%" fill="white" font-size="9px" text-anchor="end">0%</text>
+          <rect id="page_bkgnd" y="0.5" width="4ex" height="16" fill="transparent" stroke="none"
+            fill-opacity="0.6"></rect>
+          <text id="page" y="8" x="0.5%" fill="white" font-size="9px">0/0</text>
+        </g>
+      </svg>
     </div>
   </div>
 
-  <div id="mainContent" tabindex="-1">
-    <div id="mainText" style="display:none"></div>
-    <canvas id="mainImage"></canvas>
+  <div id="bookViewer">
+    <svg id="pages" style="display:none">
+      <g id="bvViewport">
+        <g id="page1">
+          <image id="page1Image"></image>
+          <foreignObject id="page1Html"></foreignObject>
+        </g>
+        <g id="page2">
+          <image id="page2Image"></image>
+          <foreignObject id="page2Html"></foreignObject>
+        </g>
+      </g>
+    </svg>
   </div>
-  <div id="left" class="arrow" onclick="showLeftPage()">‹</div>
-  <div id="right" class="arrow" onclick="showRightPage()">›</div>
+
+  <div id="readingStackOverlay" class="fullScreenOverlay" style="display:none" hidden></div>
+  <div id="readingStack" hidden>
+    <div id="readingStackContents">
+    </div>
+    <button id="readingStackButton" title="Reading Stack" aria-label="Reading Stack button">
+      <svg stroke="currentColor" stroke-width="2" width="30" height="50">
+        <defs>
+          <g id="singleRow" stroke="currentColor">
+            <path d="M2,0 l2,3 l5,-7" />
+            <line x1="11" y1="0" x2="24" y2="0" />
+          </g>
+        </defs>
+        <use y="9" href="#singleRow" />
+        <use y="19" href="#singleRow" />
+        <use y="29" href="#singleRow" />
+        <use y="39" href="#singleRow" />
+      </svg>
+    </button>
+  </div>
+
+  <div id="nav" hidden>
+    <button id="prevBook" class="navbutton" title="Previous Book ([)" disabled aria-label="Previous Book button">
+      &lt;&lt;
+    </button>
+    <button id="prev" class="navbutton" title="Previous Page (Left Arrow)" disabled
+      aria-label="Previous Page button">
+      &lt;
+    </button>
+    <button id="next" class="navbutton" title="Next Page (Right Arrow)" disabled aria-label="Next Page button">
+      &gt;
+    </button>
+    <button id="nextBook" class="navbutton" title="Next Book (])" disabled aria-label="Next Book button">
+      &gt;&gt;
+    </button>
+    <button id="fullScreen" class="navbutton" title="Full Screen (F)" aria-label="Full Screen button"
+      style="display:none">
+      &#x26f6;
+    </button>
+  </div>
+
+  <div id="header" hidden>
+    <button id="main-menu-button" class="menuButton" tabindex="0" aria-haspopup="true" aria-expanded="false"
+      aria-label="Menu button" hidden>
+      <svg viewBox="0 0 100 100" stroke="currentColor">
+        <line stroke-width="10" x1="20" x2="80" y1="30" y2="30"></line>
+        <line stroke-width="10" x1="20" x2="80" y1="50" y2="50"></line>
+        <line stroke-width="10" x1="20" x2="80" y1="70" y2="70"></line>
+      </svg>
+    </button>
+  </div>
+
+  <template id="mainMenu" hidden>
+    <ul id="mainMenuItems" class="menuItems" role="menu" aria-label="Main Menu">
+      <li role="none">
+        <button id="menu-open" class="menuItem" role="menuitem" tabindex="-1" aria-expanded="false">
+          Open<span class="subMenuArrow">&#x25B6;</span>
+        </button>
+      </li>
+      <li role="none">
+        <button id="menu-close-all" style="display:none" disabled="true" class="menuItem" role="menuitem" tabindex="-1">
+          Close All
+        </button>
+      </li>
+      <li role="none">
+        <hr class="menuSeparator" />
+      </li>
+      <li role="none">
+        <button id="menu-view" class="menuItem" role="menuitem" tabindex="-1" aria-expanded="false">
+          View<span class="subMenuArrow">&#x25B6;</span>
+        </button>
+      </li>
+      <li role="none">
+        <hr class="menuSeparator" />
+      </li>
+      <li role="none">
+        <button id="menu-help" class="menuItem" role="menuitem" tabindex="-1">
+          Help (Keyboard Shortcuts)<span class="menuItemKey">?</span>
+        </button>
+      </li>
+    </ul>
+  </template>
+
+  <template id="openMenu" hidden>
+    <ul id="openMenuItems" class="menuItems" role="menu" aria-label="Open Menu">
+      <li role="none">
+        <button id="menu-open-local-files" class="menuItem" role="menuitem" tabindex="-1">
+          Open from Your Computer<span class="menuItemKey">O</span>
+        </button>
+        <input id="menu-open-local-files-input" type="file" multiple tabindex="-1">
+      </li>
+      <li role="none">
+        <button id="menu-open-url" class="menuItem" role="menuitem" tabindex="-1">
+          Open from URL<span class="menuItemKey">U</span>
+        </button>
+      </li>
+      <li role="none">
+        <button id="menu-open-google-drive" style="display:none" disabled="true" class="menuItem" role="menuitem"
+          tabindex="-1">
+          Open from Google Drive<span class="menuItemKey">G</span>
+        </button>
+      </li>
+      <li role="none">
+        <button id="menu-open-ipfs-hash" class="menuItem" role="menuitem" tabindex="-1">
+          Open from IPFS<span class="menuItemKey">I</span>
+        </button>
+      </li>
+    </ul>
+  </template>
+
+  <template id="viewMenu" hidden>
+    <ul id="viewMenuItems" class="menuItems" role="menu" aria-label="View Menu">
+      <li role="none">
+        <button id="menu-view-rotate-right" class="menuItem" role="menuitem" tabindex="-1">
+          Rotate Right<span class="menuItemKey">R</span>
+        </button>
+      </li>
+      <li role="none">
+        <button id="menu-view-rotate-left" class="menuItem" role="menuitem" tabindex="-1">
+          Rotate Left<span class="menuItemKey">L</span>
+        </button>
+      </li>
+      <li role="none">
+        <hr class="menuSeparator" />
+      </li>
+      <li role="none">
+        <button id="menu-view-one-page" class="menuItem" role="menuitem" tabindex="-1">
+          <span class="menuCheckmark"></span>1-page viewer<span class="menuItemKey">1</span>
+        </button>
+      </li>
+      <li role="none">
+        <button id="menu-view-two-page" class="menuItem" role="menuitem" tabindex="-1">
+          <span class="menuCheckmark"></span>2-page viewer<span class="menuItemKey">2</span>
+        </button>
+      </li>
+      <li role="none">
+        <hr class="menuSeparator" />
+      </li>
+      <li role="none">
+        <button id="menu-view-fit-best" class="menuItem" role="menuitem" tabindex="-1">
+          <span class="menuCheckmark"></span>Best Fit<span class="menuItemKey">B</span>
+        </button>
+      </li>
+      <li role="none">
+        <button id="menu-view-fit-height" class="menuItem" role="menuitem" tabindex="-1">
+          <span class="menuCheckmark"></span>Fit to Height<span class="menuItemKey">H</span>
+        </button>
+      </li>
+      <li role="none">
+        <button id="menu-view-fit-width" class="menuItem" role="menuitem" tabindex="-1">
+          <span class="menuCheckmark"></span>Fit to Width<span class="menuItemKey">W</span>
+        </button>
+      </li>
+    </ul>
+  </template>
+
+  <template id="viewerContextMenu" hidden>
+    <ul id="viewerContextMenuItems" class="menuItems" role="menu" aria-label="Viewer Context Menu">
+      <li role="none">
+        <button id="save-page-as-png" class="menuItem" role="menuitem" tabindex="-1">
+          Save page as PNG
+        </button>
+      </li>
+      <li role="none">
+        <button id="save-page-as-jpg" class="menuItem" role="menuitem" tabindex="-1">
+          Save page as JPG
+        </button>
+      </li>
+      <li role="none">
+        <button id="save-page-as-webp" class="menuItem" role="menuitem" tabindex="-1">
+          Save page as WebP
+        </button>
+      </li>
+    </ul>
+  </template>
+
+  <div id="left" class="arrow">‹</div>
+  <div id="right" class="arrow">›</div>
 </div>
 
 <div class="modal md-effect-1" id="settings-modal">
@@ -93,10 +298,9 @@
           <tr><td>B</td>      <td>{{_('Scale to Best')}}</td></tr>
           <tr><td>W</td>      <td>{{_('Scale to Width')}}</td></tr>
           <tr><td>H</td>      <td>{{_('Scale to Height')}}</td></tr>
-          <tr><td>N</td>      <td>{{_('Scale to Native')}}</td></tr>
           <tr><td>R</td>      <td>{{_('Rotate Right')}}</td></tr>
           <tr><td>L</td>      <td>{{_('Rotate Left')}}</td></tr>
-          <tr><td>F</td>      <td>{{_('Flip Image')}}</td></tr>
+          <tr><td>F</td>      <td>{{_('Fullscreen')}}</td></tr>
           </tbody>
         </table>
       </div>
@@ -121,10 +325,9 @@
             <th>{{_('Scale')}}:</th>
             <td>
               <div class="inputs">
-                <label for="fitBest"><input type="radio" id="fitBest" name="fitMode" value="66" /> {{_('Best')}}</label>
-                <label for="fitWidth"><input type="radio" id="fitWidth" name="fitMode" value="87" /> {{_('Width')}}</label>
-                <label for="fitHeight"><input type="radio" id="fitHeight" name="fitMode" value="72" /> {{_('Height')}}</label>
-                <label for="fitNative"><input type="radio" id="fitNative" name="fitMode" value="78" /> {{_('Native')}}</label>
+                <label for="fitBest"><input type="radio" id="fitBest" name="fitMode" value="3" /> {{_('Best')}}</label>
+                <label for="fitWidth"><input type="radio" id="fitWidth" name="fitMode" value="1" /> {{_('Width')}}</label>
+                <label for="fitHeight"><input type="radio" id="fitHeight" name="fitMode" value="2" /> {{_('Height')}}</label>
               </div>
             </td>
           </tr>
@@ -136,15 +339,6 @@
                 <label for="r90"><input type="radio" id="r90" name="rotateTimes" value="1" /> 90&deg;</label>
                 <label for="r180"><input type="radio" id="r180" name="rotateTimes" value="2" /> 180&deg;</label>
                 <label for="r270"><input type="radio" id="r270" name="rotateTimes" value="3" /> 270&deg;</label>
-              </div>
-            </td>
-          </tr>
-          <tr>
-            <th>{{_('Flip')}}:</th>
-            <td>
-              <div class="inputs">
-                <label for="vflip"><input type="checkbox" id="vflip" name="vflip" /> {{_('Horizontal')}}</label>
-                <label for="hflip"><input type="checkbox" id="hflip" name="hflip" /> {{_('Vertical')}}</label>
               </div>
             </td>
           </tr>
@@ -166,9 +360,22 @@
 </div>
 <div class="overlay"></div>
 <script>
-  $('input[name="direction"]').change(function() {
-    updateArrows();
+  var updateArrows = function() {
+    let checked = document.querySelector('input[name="direction"]:checked');
+    if (checked.value === "0") {
+      document.querySelector("#prev_page_key").innerHTML = "&larr;";
+      document.querySelector("#next_page_key").innerHTML = "&rarr;";
+    } else {
+      document.querySelector("#prev_page_key").innerHTML = "&rarr;";
+      document.querySelector("#next_page_key").innerHTML = "&larr;";
+    }
+  };
+  document.querySelectorAll('input[name="direction"]').forEach( (input) => {
+    input.addEventListener("change", (event) => {
+        updateArrows();
+    });
   });
 </script>
+
 </body>
 </html>

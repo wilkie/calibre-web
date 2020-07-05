@@ -165,6 +165,8 @@ dl.helplist dd {
   top: 20px;
 }
 
+/* Menu styling */
+
 .menuButton {
   background-color: black;
   border: solid 1px grey;
@@ -400,6 +402,7 @@ button:focus {
   border-top: solid 1px yellow;
 }
 
+/* TODO: Remove current class and use focus for reading stack. */
 .menuItem:focus,
 .readingStackBook.current {
   background-color: #cc2929;
